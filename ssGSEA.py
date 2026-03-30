@@ -1,111 +1,148 @@
+import matplotlib
 import pandas as pd
 import gseapy as gp
-
-# Load one sample TSV
-fpath = "./test/test1.tsv"
-df = pd.read_csv(fpath, sep="\t", comment="#")
-print("Raw shape:", df.shape)
-print(df.head(10))
-
-# Clean
-df = df[~df["gene_id"].str.startswith("N_")] 
-df = df[df["gene_type"] == "protein_coding"] 
-# df = df[["gene_name", "gene_type", "unstranded", "stranded_first", "stranded_second", "tpm_unstranded", "fpkm_unstranded", "fpkm_uq_unstranded"]].set_index("gene_name")
-df = df[["gene_name", "tpm_unstranded"]]
-df = df[df.index.notna()]
-df.index = df.index.astype(str)
-
-df["gene_name"] = df["gene_name"].str.strip()
-df = df.drop_duplicates(subset=["gene_name"], keep="first")
-
-df = df.set_index("gene_name")
-df.index = df.index.astype(str)
-
-# safety check
-df = df[df.index != "nan"]
-df = df[~df.index.isna()]
-
-print("Any duplicates remaining:", df.index.duplicated().sum())
-print("Index dtype:", df.index.dtype)
+from pathlib import Path
+from tqdm import tqdm
+from typing import Optional
+import matplotlib.pyplot as plt
+import numpy as np 
 
 
-print("\nCleaned shape:", df.shape)
-print(df.head())
 
-# Define gene sets
-gene_sets = {
-    "HALLMARK_GLYCOLYSIS": [
-        "ABCB6","ADORA2B","AGL","AGRN","AK3","AK4","AKR1A1","ALDH7A1","ALDH9A1","ALDOA",
-        "ALDOB","ALG1","ANG","ANGPTL4","ANKZF1","ARPP19","ARTN","AURKA","B3GALT6","B3GAT1",
-        "B3GAT3","B3GNT3","B4GALT1","B4GALT2","B4GALT4","B4GALT7","BIK","BPNT1","CACNA1H","CAPN5",
-        "CASP6","CD44","CDK1","CENPA","CHPF","CHPF2","CHST1","CHST12","CHST2","CHST4",
-        "CHST6","CITED2","CLDN3","CLDN9","CLN6","COG2","COL5A1","COPB2","CTH","CXCR4",
-        "CYB5A","DCN","DDIT4","DEPDC1","DLD","DPYSL4","DSC2","ECD","EFNA3","EGFR",
-        "EGLN3","ELF3","ENO1","ENO2","ERO1A","EXT1","EXT2","FAM162A","FBP2","FKBP4",
-        "FUT8","G6PD","GAL3ST1","GALE","GALK1","GALK2","GAPDHS","GCLC","GFPT1","GFUS",
-        "GLCE","GLRX","GMPPA","GMPPB","GNE","GNPDA1","GOT1","GOT2","GPC1","GPC3",
-        "GPC4","GPR87","GUSB","GYS1","GYS2","HAX1","HDLBP","HK2","HMMR","HOMER1",
-        "HS2ST1","HS6ST2","HSPA5","IDH1","IDUA","IER3","IGFBP3","IL13RA1","IRS2","ISG20",
-        "KDELR3","KIF20A","KIF2A","LCT","LDHA","LDHC","LHPP","LHX9","MDH1","MDH2",
-        "ME1","ME2","MED24","MERTK","MET","MIF","MIOX","MPI","MXI1","NANP",
-        "NASP","NDST3","NDUFV3","NOL3","NSDHL","NT5E","P4HA1","P4HA2","PAM","PAXIP1",
-        "PC","PDK3","PFKFB1","PFKP","PGAM1","PGAM2","PGK1","PGLS","PGM2","PHKA2",
-        "PKM","PKP2","PLOD1","PLOD2","PMM2","POLR3K","PPFIA4","PPIA","PPP2CB","PRPS1",
-        "PSMC4","PYGB","PYGL","QSOX1","RARS1","RBCK1","RPE","RRAGD","SAP30","SDC1",
-        "SDC2","SDC3","SDHC","SLC16A3","SLC25A10","SLC25A13","SLC35A3","SLC37A4","SOD1","SOX9",
-        "SPAG4","SRD5A3","STC1","STC2","STMN1","TALDO1","TFF3","TGFA","TGFBI","TKTL1",
-        "TPBG","TPI1","TPST1","TXN","UGP2","VCAN","VEGFA","VLDLR","XYLT2","ZNF292"
-        # paste full list here
-    ],
-    "HALLMARK_OXIDATIVE_PHOSPHORYLATION": [
-        "ABCB7","ACAA1","ACAA2","ACADM","ACADSB","ACADVL","ACAT1","ACO2","AFG3L2","AIFM1",
-        "ALAS1","ALDH6A1","ATP1B1","ATP5F1A","ATP5F1B","ATP5F1C","ATP5F1D","ATP5F1E","ATP5MC1","ATP5MC2",
-        "ATP5MC3","ATP5ME","ATP5MF","ATP5MG","ATP5PB","ATP5PD","ATP5PF","ATP5PO","ATP6AP1","ATP6V0B",
-        "ATP6V0C","ATP6V0E1","ATP6V1C1","ATP6V1D","ATP6V1E1","ATP6V1F","ATP6V1G1","ATP6V1H","BAX","BCKDHA",
-        "BDH2","CASP7","COX10","COX11","COX15","COX17","COX4I1","COX5A","COX5B","COX6A1",
-        "COX6B1","COX6C","COX7A2","COX7A2L","COX7B","COX7C","COX8A","CPT1A","CS","CYB5A",
-        "CYB5R3","CYC1","CYCS","DECR1","DLAT","DLD","DLST","ECH1","ECHS1","ECI1",
-        "ETFA","ETFB","ETFDH","FDX1","FH","FXN","GLUD1","GOT2","GPI","GPX4",
-        "GRPEL1","HADHA","HADHB","HCCS","HSD17B10","HSPA9","HTRA2","IDH1","IDH2","IDH3A",
-        "IDH3B","IDH3G","IMMT","ISCA1","ISCU","LDHA","LDHB","LRPPRC","MAOB","MDH1",
-        "MDH2","MFN2","MGST3","MPC1","MRPL11","MRPL15","MRPL34","MRPL35","MRPS11","MRPS12",
-        "MRPS15","MRPS22","MRPS30","MTRF1","MTRR","MTX2","NDUFA1","NDUFA2","NDUFA3","NDUFA4",
-        "NDUFA5","NDUFA6","NDUFA7","NDUFA8","NDUFA9","NDUFAB1","NDUFB1","NDUFB2","NDUFB3","NDUFB4",
-        "NDUFB5","NDUFB6","NDUFB7","NDUFB8","NDUFC1","NDUFC2","NDUFS1","NDUFS2","NDUFS3","NDUFS4",
-        "NDUFS6","NDUFS7","NDUFS8","NDUFV1","NDUFV2","NNT","NQO2","OAT","OGDH","OPA1",
-        "OXA1L","PDHA1","PDHB","PDHX","PDK4","PDP1","PHB2","PHYH","PMPCA","POLR2F",
-        "POR","PRDX3","RETSAT","RHOT1","RHOT2","SDHA","SDHB","SDHC","SDHD","SLC25A11",
-        "SLC25A12","SLC25A20","SLC25A3","SLC25A4","SLC25A5","SLC25A6","SUCLA2","SUCLG1","SUPV3L1","SURF1",
-        "TCIRG1","TIMM10","TIMM13","TIMM17A","TIMM50","TIMM8B","TIMM9","TOMM22","TOMM70","UQCR10",
-        "UQCR11","UQCRB","UQCRC1","UQCRC2","UQCRFS1","UQCRH","UQCRQ","VDAC1","VDAC2","VDAC3"
-    ]
-}
 
-# Sanity check gene overlap
-for pathway, genes in gene_sets.items():
-    overlap = [g for g in genes if g in df.index]
-    print(f"\n{pathway}")
-    print(f"  Gene set size:        {len(genes)}")
-    print(f"  Found in matrix:      {len(overlap)}")
-    print(f"  Missing from matrix:  {len(genes) - len(overlap)}")
-    print(f"  Example found genes:  {overlap[:5]}")
+# ── Config ────────────────────────────────────────────────────────────────────
+DATA_DIR   = Path("./GDCdata/TCGA-KIRC/Transcriptome_Profiling/Gene_Expression_Quantification")
+GMT_PATH   = "./HALLMARK_COMBINED.gmt"
+# EXPR_COLS  = ["unstranded", "stranded_first", "stranded_second", "tpm_unstranded"]
+# EXPR_COLS  = ["stranded_first", "stranded_second"]
+# EXPR_COLS  = ["tpm_unstranded"]
+EXPR_COLS  = ["tpm_unstranded"]
 
-print(df)
+# ── 1. Load & combine all TSV files ──────────────────────────────────────────
+def load_sample(fpath: Path) -> Optional[pd.Series]:    # try:
+        df = pd.read_csv(fpath, sep="\t", comment="#")
 
-# 5Run ssGSEA on single sample 
+        # Clean
+        df = df[~df["gene_id"].str.startswith("N_")]
+        df = df[df["gene_type"] == "protein_coding"]
+        df = df[["gene_name"] + EXPR_COLS].copy()
+
+        df["gene_name"] = df["gene_name"].str.strip()
+        df = df.drop_duplicates(subset=["gene_name"], keep="first")
+        df = df[df["gene_name"].notna() & (df["gene_name"] != "nan")]
+        df = df.set_index("gene_name")
+
+        stacked = df.stack()
+        stacked.name = fpath.parent.name   # uuid directory = sample ID
+
+        return stacked
+
+    # except Exception as e:
+    #     print(f"[WARN] Skipping {fpath.name}: {e}")
+    #     return None
+
+
+# Fix: glob specifically for .tsv files at depth 2
+tsv_files = sorted(DATA_DIR.glob("*/*.tsv"))
+print(f"Found {len(tsv_files)} TSV files")
+
+records = []
+for fpath in tqdm(tsv_files, desc="Loading samples"):
+    s = load_sample(fpath)
+    if s is not None:
+        records.append(s)
+
+# combined shape: rows = samples, columns = MultiIndex(gene_name, expr_col)
+combined = pd.DataFrame(records)                # (n_samples × n_genes*n_cols)
+combined.index.name = "sample_id"
+
+print(f"\nCombined shape: {combined.shape}")
+print(combined.iloc[:3, :6])                    # quick sanity peek
+
+
+expr_matrix = (
+    combined.xs("tpm_unstranded", axis=1, level=1)
+    # .add(combined.xs("stranded_second", axis=1, level=1))
+    # .div(2)
+    .T
+    .fillna(0)
+)
+expr_matrix.index.name = "gene_name"
+print(f"\nAveraged stranded matrix for ssGSEA: {expr_matrix.shape}  (genes × samples)")
+
+expr_matrix.to_csv("tpm_matrix.csv")
+
+# ── 3. Run ssGSEA on all samples at once ─────────────────────────────────────
+print("\nRunning ssGSEA …")
 results = gp.ssgsea(
-    data=df,
-    gene_sets="./HALLMARK_COMBINED.gmt",
+    data=expr_matrix,
+    gene_sets=GMT_PATH,
     outdir=None,
-    no_plot=True
+    no_plot=True,
+    processes=4,          
 )
 
-# Extract scores
-glycolysis_score = results.res2d[results.res2d["Term"] == "HALLMARK_GLYCOLYSIS"]["NES"].values[0]
-oxphos_score     = results.res2d[results.res2d["Term"] == "HALLMARK_OXIDATIVE_PHOSPHORYLATION"]["NES"].values[0]
-delta = glycolysis_score - oxphos_score
+scores = results.res2d.pivot(index="Term", columns="Name", values="NES").T
+scores.index.name = "sample_id"
+print(f"\nssGSEA scores shape: {scores.shape}")
+print(scores.head())
 
-print(f"Glycolysis Score: {glycolysis_score:.4f}")
-print(f"OXPHOS Score:     {oxphos_score:.4f}")
-print(f"Delta:            {delta:.4f}")
-print(f"Label:            {'Glycolytic' if delta > 0 else 'OXPHOS'}")
+
+# ── 4. Label each sample ──────────────────────────────────────────────────────
+def label_sample(row):
+    delta = row["HALLMARK_GLYCOLYSIS"] - row["HALLMARK_OXIDATIVE_PHOSPHORYLATION"]
+    if   delta >  0.5: return "Glycolytic"
+    elif delta < -0.5: return "Oxidative"
+    else:              return "Mixed"
+
+scores["delta"]  = scores["HALLMARK_GLYCOLYSIS"] - scores["HALLMARK_OXIDATIVE_PHOSPHORYLATION"]
+scores["label"]  = scores.apply(label_sample, axis=1)
+
+print("\nLabel distribution:")
+print(scores["label"].value_counts())
+print(scores[["HALLMARK_GLYCOLYSIS", "HALLMARK_OXIDATIVE_PHOSPHORYLATION", "delta", "label"]].head(10))
+
+
+# Add 4 relevant gene columns for boxplot
+scores["HK2"]   = combined[("HK2", "tpm_unstranded")]
+# scores["LDHA"]   = combined[("LDHA", "tpm_unstranded")]
+# scores["SDHA"]   = combined[("SDHA", "tpm_unstranded")]
+# scores["UQCRC1"] = combined[("UQCRC1", "tpm_unstranded")]
+
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+axes[0].scatter(scores["HALLMARK_GLYCOLYSIS"], scores["HK2"], alpha=0.6)
+axes[0].set_xlabel("HALLMARK_GLYCOLYSIS")
+axes[0].set_ylabel("HK2")
+axes[0].set_title("Glycolysis vs HK2")
+
+axes[1].scatter(scores["HALLMARK_OXIDATIVE_PHOSPHORYLATION"], scores["HK2"], alpha=0.6)
+axes[1].set_xlabel("HALLMARK_OXIDATIVE_PHOSPHORYLATION")
+axes[1].set_ylabel("HK2")
+axes[1].set_title("OXPHOS vs HK2")
+
+axes[2].scatter(scores["delta"], scores["HK2"], alpha=0.6)
+axes[2].set_xlabel("Delta (Glycolysis - OXPHOS)")
+axes[2].set_ylabel("HK2")
+axes[2].set_title("Delta vs HK2")
+
+plt.tight_layout()
+plt.savefig("hk2_scatter.png", dpi=150)
+plt.show()
+
+
+
+scores.to_csv("ssGSEA_scores_labeled.csv")
+
+
+scores_subset = scores[["delta", "label"]].copy()
+
+
+scores_subset.columns = pd.MultiIndex.from_product([["ssGSEA"], scores_subset.columns])
+
+final = scores_subset.join(combined)
+print(final.head(100))
+
+final.to_csv("tcga_kirc_combined_labeled.csv")
+print("\nSaved → tcga_kirc_combined_labeled.csv")
+
