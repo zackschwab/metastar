@@ -1,2 +1,33 @@
 # metastar
 METAbolic STAte Recognition machine learning model based on multi-omic biological data. 
+
+## Getting started
+
+```bash
+git clone https://github.com/zackschwab/metastar.git
+cd metastar
+```
+
+### Download the GDC data by running this R code
+```R
+install.packages("BiocManager")
+BiocManager::install("TCGAbiolinks")
+library(TCGAbiolinks)
+ 
+query <- GDCquery(
+  project = "TCGA-KIRC",
+  data.category = "Transcriptome Profiling",
+  data.type = "Gene Expression Quantification",
+  workflow.type = "STAR - Counts"
+)
+ 
+GDCdownload(query)
+data <- GDCprepare(query)
+```
+
+Copy the GDC data into the metastar directory
+
+```bash
+pip install -r requirements.txt
+python3 ./ssGSEA.py
+```

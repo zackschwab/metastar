@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# Config 
 DATA_DIR = Path("./GDCdata/TCGA-KIRC/Transcriptome_Profiling/Gene_Expression_Quantification")
 GMT_PATH = "./HALLMARK_COMBINED.gmt"
 EXPR_COLS = ["tpm_unstranded"]
