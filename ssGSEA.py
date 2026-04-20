@@ -66,7 +66,7 @@ def build_expression_matrix(combined: pd.DataFrame) -> pd.DataFrame:
     expr = (
         combined.xs("tpm_unstranded", axis=1, level=1)
         .T
-        .fillna(0)
+        # .fillna(0)
     )
 
     expr.index.name = "gene_name"
@@ -227,82 +227,98 @@ def prepare_ml_dataset(expr_matrix: pd.DataFrame, scores: pd.DataFrame):
     return df
 
 
-# Normalize molecular data
-def normalize_molecular_data(df: pd.DataFrame):
-
-    X = df.drop(columns=["label"])
-
-    X = np.log1p(X)
-
-    scaler = StandardScaler()
-
-    X_scaled = scaler.fit_transform(X)
-
-    X_scaled = pd.DataFrame(
-        X_scaled,
-        columns=X.columns,
-        index=X.index
-    )
-
-    X_scaled["label"] = df["label"]
-
-    return X_scaled
-
-
-# Handle missing values
-def handle_missing_data(df: pd.DataFrame):
-
-    X = df.drop(columns=["label"])
-
-    imputer = KNNImputer(n_neighbors=5)
-
-    X_imputed = imputer.fit_transform(X)
-
-    X_imputed = pd.DataFrame(
-        X_imputed,
-        columns=X.columns,
-        index=X.index
-    )
-
-    X_imputed["label"] = df["label"]
-
-    return X_imputed
-
-
-# Remove low variance genes
-def remove_low_variance(df: pd.DataFrame):
-
-    X = df.drop(columns=["label"])
-
-    selector = VarianceThreshold(threshold=0.01)
-
-    X_reduced = selector.fit_transform(X)
-
-    kept_genes = X.columns[selector.get_support()]
-
-    X_reduced = pd.DataFrame(
-        X_reduced,
-        columns=kept_genes,
-        index=X.index
-    )
-
-    X_reduced["label"] = df["label"]
-
-    return X_reduced
-
-
-# Train classifier
-def train_model(df: pd.DataFrame):
+# Split data into train and test
+def split_data(df: pd.DataFrame):
 
     X = df.drop(columns=["label"])
     y = df["label"]
 
-    X_train, X_test, y_train, y_test = train_test_split(
+    training_features, testing_features, training_answers, testing_answers  = train_test_split(
         X, y,
         test_size=0.2,
         stratify=y,
         random_state=42
     )
+
+    return training_features, testing_features, training_answers, testing_answers 
+
+
+# Normalize molecular data
+def normalize_molecular_data(training_features: pd.DataFrame, testing_features: pd.DataFrame):
+
+    training_features = np.log1p(training_features)
+    testing_features = np.log1p(testing_features)
+
+    scaler = StandardScaler()
+
+    training_features_scaled = scaler.fit_transform(training_features)
+    testing_features_scaled = scaler.transform(testing_features)
+
+    training_features_scaled = pd.DataFrame(
+        training_features_scaled,
+        columns=training_features.columns,
+        index=training_features.index
+    )
+
+    testing_features_scaled = pd.DataFrame(
+        testing_features_scaled,
+        columns=testing_features.columns,
+        index=testing_features.index
+    )
+
+    return training_features_scaled, testing_features_scaled
+
+
+# Handle missing values
+def handle_missing_data(training_features: pd.DataFrame, testing_features: pd.DataFrame):
+
+    imputer = KNNImputer(n_neighbors=5)
+
+    training_features_imputed = imputer.fit_transform(training_features)
+    testing_features_imputed = imputer.transform(testing_features)
+
+    training_features_imputed = pd.DataFrame(
+        training_features_imputed,
+        columns=training_features.columns,
+        index=training_features.index
+    )
+
+    testing_features_imputed = pd.DataFrame(
+        testing_features_imputed,
+        columns=testing_features.columns,
+        index=testing_features.index
+    )
+
+    return training_features_imputed, testing_features_imputed
+
+
+# Remove low variance genes
+def remove_low_variance(training_features: pd.DataFrame, testing_features: pd.DataFrame):
+
+    selector = VarianceThreshold(threshold=0.01)
+
+    training_features_reduced = selector.fit_transform(training_features)
+    testing_features_reduced = selector.transform(testing_features)
+
+    kept_genes = training_features.columns[selector.get_support()]
+
+    training_features_reduced = pd.DataFrame(
+        training_features_reduced,
+        columns=kept_genes,
+        index=training_features.index
+    )
+
+    testing_features_reduced = pd.DataFrame(
+        testing_features_reduced,
+        columns=kept_genes,
+        index=testing_features.index
+    )
+
+    return training_features_reduced, testing_features_reduced
+
+
+# Train classifier
+def train_model(training_features: pd.DataFrame, testing_features: pd.DataFrame, training_answers: pd.Series, testing_answers : pd.Series):
 
     model = XGBClassifier(
         n_estimators=300,
@@ -315,23 +331,23 @@ def train_model(df: pd.DataFrame):
         eval_metric="logloss"
     )
 
-    model.fit(X_train, y_train)
+    model.fit(training_features, training_answers)
 
-    preds = model.predict(X_test)
-    probs = model.predict_proba(X_test)[:, 1]
+    preds = model.predict(testing_features)
+    probs = model.predict_proba(testing_features)[:, 1]
 
     print("\nModel Performance")
 
-    print("Accuracy:", accuracy_score(y_test, preds))
-    print("ROC-AUC:", roc_auc_score(y_test, probs))
+    print("Accuracy:", accuracy_score(testing_answers , preds))
+    print("ROC-AUC:", roc_auc_score(testing_answers , probs))
 
-    print(classification_report(y_test, preds))
+    print(classification_report(testing_answers , preds))
 
 
     # Feature importance
     importance = pd.Series(
         model.feature_importances_,
-        index=X.columns
+        index=training_features.columns
     )
 
     importance = importance.sort_values(ascending=False)
@@ -378,16 +394,16 @@ COMBINED_CACHE = Path("cache_combined.parquet")
 EXPR_CACHE = Path("cache_expr_matrix.parquet")
 # Main
 def main():
-    if COMBINED_CACHE.exists() and EXPR_CACHE.exists():
-        print("Loading from cache...")
-        combined = pd.read_parquet(COMBINED_CACHE)
-        expr_matrix = pd.read_parquet(EXPR_CACHE)
-    else:
-        combined = load_all_samples(DATA_DIR)
-        expr_matrix = build_expression_matrix(combined)
-        combined.to_parquet(COMBINED_CACHE)
-        expr_matrix.to_parquet(EXPR_CACHE)
-        expr_matrix.to_csv("tpm_matrix.csv")
+    # if COMBINED_CACHE.exists() and EXPR_CACHE.exists():
+    #     print("Loading from cache...")
+    #     combined = pd.read_parquet(COMBINED_CACHE)
+    #     expr_matrix = pd.read_parquet(EXPR_CACHE)
+    # else:
+    combined = load_all_samples(DATA_DIR)
+    expr_matrix = build_expression_matrix(combined)
+    combined.to_parquet(COMBINED_CACHE)
+    expr_matrix.to_parquet(EXPR_CACHE)
+    expr_matrix.to_csv("tpm_matrix.csv")
         
     print("Combined shape:", combined.shape)
     scores = run_ssgsea(expr_matrix, GMT_PATH)
@@ -412,16 +428,19 @@ def main():
     # Machine Learning Pipeline
     df = prepare_ml_dataset(expr_matrix, scores)
 
-    df = normalize_molecular_data(df)
+    training_features, testing_features, training_answers, testing_answers  = split_data(df)
 
-    df = handle_missing_data(df)
+    training_features, testing_features = normalize_molecular_data(training_features, testing_features)
 
-    df = remove_low_variance(df)
+    training_features, testing_features = handle_missing_data(training_features, testing_features)
 
-    train_model(df)
+    training_features, testing_features = remove_low_variance(training_features, testing_features)
+
+    train_model(training_features, testing_features, training_answers, testing_answers )
 
     save_outputs(scores, combined)
 
 
 if __name__ == "__main__":
     main()
+    
