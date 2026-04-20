@@ -428,12 +428,10 @@ def main():
     # Machine Learning Pipeline
     df = prepare_ml_dataset(expr_matrix, scores)
 
+    # Split data before normalizing to prevent data leakage
     training_features, testing_features, training_answers, testing_answers  = split_data(df)
-
     training_features, testing_features = normalize_molecular_data(training_features, testing_features)
-
     training_features, testing_features = handle_missing_data(training_features, testing_features)
-
     training_features, testing_features = remove_low_variance(training_features, testing_features)
 
     train_model(training_features, testing_features, training_answers, testing_answers )
