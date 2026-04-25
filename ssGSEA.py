@@ -14,7 +14,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, roc_auc_score, accuracy_score
-
+from sklearn.model_selection import StratifiedKFold
 
 # Config
 DATA_DIR = Path("./GDCdata/TCGA-KIRC/Transcriptome_Profiling/Gene_Expression_Quantification")
@@ -317,6 +317,94 @@ def remove_low_variance(training_features: pd.DataFrame, testing_features: pd.Da
     return training_features_reduced, testing_features_reduced
 
 
+def cross_validate_model(df: pd.DataFrame, n_splits=5):
+
+    X = df.drop(columns=["label"])
+    y = df["label"]
+
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+    aucs = []
+    accs = []
+
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
+
+        print(f"\nFold {fold + 1}")
+
+        train_features, test_features = X.iloc[train_idx], X.iloc[val_idx]
+        training_answers, testing_answers = y.iloc[train_idx], y.iloc[val_idx]
+
+        # Preprocessing
+        train_features = np.log1p(train_features)
+        test_features = np.log1p(test_features)
+
+        imputer = KNNImputer(n_neighbors=5)
+        train_features = pd.DataFrame(
+            imputer.fit_transform(train_features),
+            columns=train_features.columns,
+            index=train_features.index
+        )
+        test_features = pd.DataFrame(
+            imputer.transform(test_features),
+            columns=test_features.columns,
+            index=test_features.index
+        )
+
+        selector = VarianceThreshold(threshold=0.01)
+        train_features = pd.DataFrame(
+            selector.fit_transform(train_features),
+            columns=train_features.columns[selector.get_support()],
+            index=train_features.index
+        )
+        test_features = pd.DataFrame(
+            selector.transform(test_features),
+            columns=train_features.columns,
+            index=test_features.index
+        )
+
+        scaler = StandardScaler()
+        train_features = pd.DataFrame(
+            scaler.fit_transform(train_features),
+            columns=train_features.columns,
+            index=train_features.index
+        )
+        test_features = pd.DataFrame(
+            scaler.transform(test_features),
+            columns=train_features.columns,
+            index=test_features.index
+        )
+
+        model = XGBClassifier(
+            n_estimators=300,
+            max_depth=6,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42,
+            n_jobs=12,
+            eval_metric="logloss"
+        )
+
+        model.fit(train_features, training_answers)
+
+        preds = model.predict(test_features)
+        probs = model.predict_proba(test_features)[:, 1]
+
+        acc = accuracy_score(testing_answers, preds)
+        auc = roc_auc_score(testing_answers, probs)
+
+        print("Accuracy:", acc)
+        print("AUC:", auc)
+
+        accs.append(acc)
+        aucs.append(auc)
+
+    print("\n===== CV SUMMARY =====")
+    print("Mean Accuracy:", np.mean(accs))
+    print("Mean ROC-AUC:", np.mean(aucs))
+    print("STD ROC-AUC:", np.std(aucs))
+
+    
 # Train classifier
 def train_model(training_features: pd.DataFrame, testing_features: pd.DataFrame, training_answers: pd.Series, testing_answers : pd.Series):
 
@@ -392,18 +480,20 @@ def save_outputs(scores: pd.DataFrame, combined: pd.DataFrame):
 
 COMBINED_CACHE = Path("cache_combined.parquet")
 EXPR_CACHE = Path("cache_expr_matrix.parquet")
+
+
 # Main
 def main():
-    # if COMBINED_CACHE.exists() and EXPR_CACHE.exists():
-    #     print("Loading from cache...")
-    #     combined = pd.read_parquet(COMBINED_CACHE)
-    #     expr_matrix = pd.read_parquet(EXPR_CACHE)
-    # else:
-    combined = load_all_samples(DATA_DIR)
-    expr_matrix = build_expression_matrix(combined)
-    combined.to_parquet(COMBINED_CACHE)
-    expr_matrix.to_parquet(EXPR_CACHE)
-    expr_matrix.to_csv("tpm_matrix.csv")
+    if COMBINED_CACHE.exists() and EXPR_CACHE.exists():
+        print("Loading from cache...")
+        combined = pd.read_parquet(COMBINED_CACHE)
+        expr_matrix = pd.read_parquet(EXPR_CACHE)
+    else:
+        combined = load_all_samples(DATA_DIR)
+        expr_matrix = build_expression_matrix(combined)
+        combined.to_parquet(COMBINED_CACHE)
+        expr_matrix.to_parquet(EXPR_CACHE)
+        expr_matrix.to_csv("tpm_matrix.csv")
         
     print("Combined shape:", combined.shape)
     scores = run_ssgsea(expr_matrix, GMT_PATH)
@@ -429,16 +519,14 @@ def main():
     df = prepare_ml_dataset(expr_matrix, scores)
 
     # Split data before normalizing to prevent data leakage
-    training_features, testing_features, training_answers, testing_answers  = split_data(df)
-    training_features, testing_features = normalize_molecular_data(training_features, testing_features)
-    training_features, testing_features = handle_missing_data(training_features, testing_features)
-    training_features, testing_features = remove_low_variance(training_features, testing_features)
+    # training_features, testing_features, training_answers, testing_answers  = split_data(df)
+    # training_features, testing_features = normalize_molecular_data(training_features, testing_features)
+    # training_features, testing_features = handle_missing_data(training_features, testing_features)
+    # training_features, testing_features = remove_low_variance(training_features, testing_features)
 
-    train_model(training_features, testing_features, training_answers, testing_answers )
-
+    cross_validate_model(df)
     save_outputs(scores, combined)
 
 
 if __name__ == "__main__":
     main()
-    
