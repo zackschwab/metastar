@@ -259,8 +259,8 @@ def tune_hyperparameters(training_features: pd.DataFrame, training_answers: pd.S
     search = RandomizedSearchCV(
         estimator=base_model,
         param_distributions=param_dist,
-        n_iter=1,
-        cv=2,
+        n_iter=50,
+        cv=5,
         scoring='roc_auc',
         n_jobs=12,
         random_state=42,
