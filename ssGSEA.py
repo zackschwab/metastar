@@ -3,24 +3,19 @@ import numpy as np
 import gseapy as gp
 from pathlib import Path
 from tqdm import tqdm
-from typing import Optional, List
+from typing import Optional, List, Dict
 import matplotlib.pyplot as plt
 import seaborn as sns
 from xgboost import XGBClassifier
-
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import KNNImputer
-from sklearn.feature_selection import VarianceThreshold
+from scipy.stats import mannwhitneyu
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, roc_auc_score, accuracy_score
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import RandomizedSearchCV
 
 # Config
 DATA_DIR = Path("./GDCdata/TCGA-KIRC/Transcriptome_Profiling/Gene_Expression_Quantification")
 GMT_PATH = "./HALLMARK_COMBINED.gmt"
 EXPR_COLS = ["tpm_unstranded"]
-
 
 # Clean and load a single sample TSV file
 def load_sample(fpath: Path) -> Optional[pd.Series]:
@@ -28,7 +23,6 @@ def load_sample(fpath: Path) -> Optional[pd.Series]:
     df = pd.read_csv(fpath, sep="\t", comment="#")
 
     df = df[~df["gene_id"].str.startswith("N_")]
-    # df = df[df["gene_type"] == "protein_coding"]
     df = df[["gene_name"] + EXPR_COLS].copy()
 
     df["gene_name"] = df["gene_name"].str.strip()
@@ -42,10 +36,8 @@ def load_sample(fpath: Path) -> Optional[pd.Series]:
 
     return stacked
 
-
 # Load all TSV files
 def load_all_samples(data_dir: Path) -> pd.DataFrame:
-
     tsv_files = sorted(data_dir.glob("*/*.tsv"))
     print(f"Found {len(tsv_files)} TSV files")
 
@@ -59,24 +51,19 @@ def load_all_samples(data_dir: Path) -> pd.DataFrame:
 
     return combined
 
-
 # Build expression matrix
 def build_expression_matrix(combined: pd.DataFrame) -> pd.DataFrame:
-
     expr = (
         combined.xs("tpm_unstranded", axis=1, level=1)
         .T
-        # .fillna(0)
     )
 
     expr.index.name = "gene_name"
 
     return expr
 
-
 # Run ssGSEA
 def run_ssgsea(expr_matrix: pd.DataFrame, gmt_path: str) -> pd.DataFrame:
-
     print("Running ssGSEA...")
 
     results = gp.ssgsea(
@@ -93,7 +80,6 @@ def run_ssgsea(expr_matrix: pd.DataFrame, gmt_path: str) -> pd.DataFrame:
 
     return scores
 
-
 # Normalize pathway scores
 def normalize_scores(scores: pd.DataFrame, pathways: List[str]) -> pd.DataFrame:
 
@@ -101,7 +87,6 @@ def normalize_scores(scores: pd.DataFrame, pathways: List[str]) -> pd.DataFrame:
         scores[col] = (scores[col] - scores[col].mean()) / scores[col].std()
 
     return scores
-
 
 # Label metabolic phenotype
 def label_samples(scores: pd.DataFrame):
@@ -123,8 +108,7 @@ def label_samples(scores: pd.DataFrame):
 
     return scores
 
-
-# Pie chart
+# Plot the distribution of sample labels
 def plot_label_distribution(scores: pd.DataFrame):
 
     label_counts = scores["label"].value_counts()
@@ -138,15 +122,13 @@ def plot_label_distribution(scores: pd.DataFrame):
 
     plt.savefig("label_distribution_pie.png", dpi=150)
 
-
 # Add gene expression
 def add_gene_expression(scores: pd.DataFrame, combined: pd.DataFrame):
 
     for gene in ["HK2", "UQCRC1", "RUNX1"]:
         scores[gene] = combined[(gene, "tpm_unstranded")]
 
-
-# Scatter plots
+# Plots tpm_unstranded expression of selected genes
 def plot_scatter(scores: pd.DataFrame):
 
     fig, axes = plt.subplots(1, 9, figsize=(25, 5))
@@ -176,9 +158,7 @@ def plot_scatter(scores: pd.DataFrame):
     ]
 
     for ax, (x, y), title in zip(axes, pairs, titles):
-
         ax.scatter(scores[x], scores[y], alpha=0.6)
-
         ax.set_xlabel(x)
         ax.set_ylabel(y)
         ax.set_title(title)
@@ -186,14 +166,19 @@ def plot_scatter(scores: pd.DataFrame):
     plt.tight_layout()
     plt.savefig("hk2_uqcrc1_scatter.png", dpi=150)
 
-    def spearman_corr(x, y):
-        return scores[[x, y]].corr(method="spearman").iloc[0, 1]
+    # Nice Spearman table
+    print("\n┌────────────────────────────────────────────────────────────┐")
+    print("│              Spearman Correlations                         |")
+    print("├────────────────────────────────────────────────────────────┤")
+    print("│  {:<45} │  {:>6}  │".format("Comparison", "ρ  "))
+    print("├────────────────────────────────────────────────────────────┤")
 
-    print("Spearman Correlations:")
+    for (x, y) in pairs:
+        rho = scores[[x, y]].corr(method="spearman").iloc[0, 1]
+        label = f"{x} vs {y}"
+        print("│  {:<45} │  {:>+6.3f}   │".format(label, rho))
 
-    for x, y in pairs:
-        print(f"{x} vs {y}: {spearman_corr(x, y):.3f}")
-
+    print("└────────────────────────────────────────────────────────────┘")
 
 # Delta distribution
 def plot_delta_distribution(scores: pd.DataFrame):
@@ -211,21 +196,32 @@ def plot_delta_distribution(scores: pd.DataFrame):
 
     plt.savefig("delta_histogram_kde.png", dpi=150)
 
-    # plt.show()
+# Prepare the dataset for machine learning in a format suitable for training
+def prepare_ml_dataset(expr_matrix, scores, binary=True):
+    if binary:
+        mask = scores["label"].isin(["Glycolytic", "Oxidative"])
+        scores_subset = scores.loc[mask].copy()
+        expr_subset = expr_matrix.loc[:, mask].copy()
+    else:
+        scores_subset = scores.copy()
+        expr_subset = expr_matrix.copy()
 
-
-# Prepare ML dataset
-def prepare_ml_dataset(expr_matrix: pd.DataFrame, scores: pd.DataFrame):
-
-    X = expr_matrix.T
-
-    y = (scores["label"] == "Glycolytic").astype(int)
-
+    X = expr_subset.T
+    y = (scores_subset["label"] == "Glycolytic").astype(int)
     df = X.copy()
     df["label"] = y
 
-    return df
+    print("\n┌─────────────────────────────────────┐")
+    print("│         ML Dataset Summary          │")
+    print("├─────────────────────────────────────┤")
+    print(f"│  Total samples       :  {df.shape[0]:>4}        │")
+    print(f"│  Features (genes)    :  {df.shape[1]-1:>4}       │")
+    print("├─────────────────────────────────────┤")
+    print(f"│  Glycolytic (1)      :  {y.sum():>4}  ({100*y.sum()/len(y):.1f}%)│")
+    print(f"│  Oxidative  (0)      :  {(y==0).sum():>4}  ({100*(y==0).sum()/len(y):.1f}%)│")
+    print("└─────────────────────────────────────┘")
 
+    return df
 
 # Split data into train and test
 def split_data(df: pd.DataFrame):
@@ -242,178 +238,80 @@ def split_data(df: pd.DataFrame):
 
     return training_features, testing_features, training_answers, testing_answers 
 
+# Hyperparameter tuning function
+def tune_hyperparameters(training_features: pd.DataFrame, training_answers: pd.Series) -> Dict:
+    param_dist = {
+        'n_estimators': [100, 300, 500, 800, 1200],
+        'max_depth': [2, 3, 4, 5, 6, 8],
+        'learning_rate': [0.001, 0.01, 0.05, 0.1, 0.2, 0.3],
+        'subsample': [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        'colsample_bytree': [0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        'reg_alpha': [0, 0.001, 0.01, 0.1, 1, 10], 
+        'min_child_weight': [1, 3, 5, 7, 10]
+    }
 
-# Normalize molecular data
-def normalize_molecular_data(training_features: pd.DataFrame, testing_features: pd.DataFrame):
-
-    training_features = np.log1p(training_features)
-    testing_features = np.log1p(testing_features)
-
-    scaler = StandardScaler()
-
-    training_features_scaled = scaler.fit_transform(training_features)
-    testing_features_scaled = scaler.transform(testing_features)
-
-    training_features_scaled = pd.DataFrame(
-        training_features_scaled,
-        columns=training_features.columns,
-        index=training_features.index
+    base_model = XGBClassifier(
+        random_state=42,
+        n_jobs=12,
+        eval_metric="logloss"
     )
 
-    testing_features_scaled = pd.DataFrame(
-        testing_features_scaled,
-        columns=testing_features.columns,
-        index=testing_features.index
+    search = RandomizedSearchCV(
+        estimator=base_model,
+        param_distributions=param_dist,
+        n_iter=1,
+        cv=2,
+        scoring='roc_auc',
+        n_jobs=12,
+        random_state=42,
+        verbose=1,
+        refit=False,
+        return_train_score=True
     )
 
-    return training_features_scaled, testing_features_scaled
+    print("\n>>> Running hyperparameter search...")
+    search.fit(training_features, training_answers)
 
+    results = search.cv_results_
+    n_folds = search.cv if isinstance(search.cv, int) else search.cv.n_splits
 
-# Handle missing values
-def handle_missing_data(training_features: pd.DataFrame, testing_features: pd.DataFrame):
+    print("\n--- Iteration Results ---")
+    for i in range(search.n_iter):
+        mean_s = results["mean_test_score"][i]
+        fold_scores = [results[f"split{j}_test_score"][i] for j in range(n_folds)]
+        params = results["params"][i]
+        marker = "  <-- BEST" if i == search.best_index_ else ""
+        print(f"Iter {i+1}: mean={mean_s:.4f} | folds={fold_scores} | {params}{marker}")
 
-    imputer = KNNImputer(n_neighbors=5)
+    best_idx = search.best_index_
+    test_scores = [results[f"split{j}_test_score"][best_idx] for j in range(n_folds)]
+    train_scores = [results[f"split{j}_train_score"][best_idx] for j in range(n_folds)]
+    best_fold = int(np.argmax(test_scores)) + 1
+    gap = np.mean(train_scores) - search.best_score_
 
-    training_features_imputed = imputer.fit_transform(training_features)
-    testing_features_imputed = imputer.transform(testing_features)
+    print(f"\nBest combo: mean test ROC-AUC = {search.best_score_:.4f}")
+    print(f"  Best fold : Fold {best_fold} ({max(test_scores):.4f})")
+    print(f"  Train gap : {gap:.4f}  {'(possible overfit)' if gap > 0.05 else ''}")
 
-    training_features_imputed = pd.DataFrame(
-        training_features_imputed,
-        columns=training_features.columns,
-        index=training_features.index
-    )
+    return search.best_params_
 
-    testing_features_imputed = pd.DataFrame(
-        testing_features_imputed,
-        columns=testing_features.columns,
-        index=testing_features.index
-    )
+# Final model training with best hyperparameters
+def train_model(training_features: pd.DataFrame, testing_features: pd.DataFrame,
+                training_answers: pd.Series, testing_answers: pd.Series,
+                best_params: Optional[Dict] = None):
 
-    return training_features_imputed, testing_features_imputed
-
-
-# Remove low variance genes
-def remove_low_variance(training_features: pd.DataFrame, testing_features: pd.DataFrame):
-
-    selector = VarianceThreshold(threshold=0.01)
-
-    training_features_reduced = selector.fit_transform(training_features)
-    testing_features_reduced = selector.transform(testing_features)
-
-    kept_genes = training_features.columns[selector.get_support()]
-
-    training_features_reduced = pd.DataFrame(
-        training_features_reduced,
-        columns=kept_genes,
-        index=training_features.index
-    )
-
-    testing_features_reduced = pd.DataFrame(
-        testing_features_reduced,
-        columns=kept_genes,
-        index=testing_features.index
-    )
-
-    return training_features_reduced, testing_features_reduced
-
-
-def cross_validate_model(df: pd.DataFrame, n_splits=5):
-
-    X = df.drop(columns=["label"])
-    y = df["label"]
-
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
-
-    aucs = []
-    accs = []
-
-    for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
-
-        print(f"\nFold {fold + 1}")
-
-        train_features, test_features = X.iloc[train_idx], X.iloc[val_idx]
-        training_answers, testing_answers = y.iloc[train_idx], y.iloc[val_idx]
-
-        # Preprocessing
-        train_features = np.log1p(train_features)
-        test_features = np.log1p(test_features)
-
-        imputer = KNNImputer(n_neighbors=5)
-        train_features = pd.DataFrame(
-            imputer.fit_transform(train_features),
-            columns=train_features.columns,
-            index=train_features.index
-        )
-        test_features = pd.DataFrame(
-            imputer.transform(test_features),
-            columns=test_features.columns,
-            index=test_features.index
-        )
-
-        selector = VarianceThreshold(threshold=0.01)
-        train_features = pd.DataFrame(
-            selector.fit_transform(train_features),
-            columns=train_features.columns[selector.get_support()],
-            index=train_features.index
-        )
-        test_features = pd.DataFrame(
-            selector.transform(test_features),
-            columns=train_features.columns,
-            index=test_features.index
-        )
-
-        scaler = StandardScaler()
-        train_features = pd.DataFrame(
-            scaler.fit_transform(train_features),
-            columns=train_features.columns,
-            index=train_features.index
-        )
-        test_features = pd.DataFrame(
-            scaler.transform(test_features),
-            columns=train_features.columns,
-            index=test_features.index
-        )
-
-        model = XGBClassifier(
-            n_estimators=300,
-            max_depth=6,
-            learning_rate=0.05,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            random_state=42,
-            n_jobs=12,
-            eval_metric="logloss"
-        )
-
-        model.fit(train_features, training_answers)
-
-        preds = model.predict(test_features)
-        probs = model.predict_proba(test_features)[:, 1]
-
-        acc = accuracy_score(testing_answers, preds)
-        auc = roc_auc_score(testing_answers, probs)
-
-        print("Accuracy:", acc)
-        print("AUC:", auc)
-
-        accs.append(acc)
-        aucs.append(auc)
-
-    print("\n===== CV SUMMARY =====")
-    print("Mean Accuracy:", np.mean(accs))
-    print("Mean ROC-AUC:", np.mean(aucs))
-    print("STD ROC-AUC:", np.std(aucs))
-
-    
-# Train classifier
-def train_model(training_features: pd.DataFrame, testing_features: pd.DataFrame, training_answers: pd.Series, testing_answers : pd.Series):
+    # If no tuned params provided, fall back to sensible defaults
+    if best_params is None:
+        best_params = {
+            'n_estimators': 300,
+            'max_depth': 6,
+            'learning_rate': 0.05,
+            'subsample': 0.8,
+            'colsample_bytree': 0.8
+        }
 
     model = XGBClassifier(
-        n_estimators=300,
-        max_depth=6,
-        learning_rate=0.05,
-        subsample=0.8,
-        colsample_bytree=0.8,
+        **best_params,
         random_state=42,
         n_jobs=12,
         eval_metric="logloss"
@@ -424,46 +322,13 @@ def train_model(training_features: pd.DataFrame, testing_features: pd.DataFrame,
     preds = model.predict(testing_features)
     probs = model.predict_proba(testing_features)[:, 1]
 
-    print("\nModel Performance")
-
-    print("Accuracy:", accuracy_score(testing_answers , preds))
-    print("ROC-AUC:", roc_auc_score(testing_answers , probs))
-
-    print(classification_report(testing_answers , preds))
-
-
-    # Feature importance
-    importance = pd.Series(
-        model.feature_importances_,
-        index=training_features.columns
-    )
-
-    importance = importance.sort_values(ascending=False)
-
-    print("\nTop 20 Important Genes:")
-    print(importance.head(20))
-
-    print("\nHK2 rank:")
-    print(importance.index.get_loc("HK2") + 1)
-
-
-    # Plot feature importance
-    top = importance.head(20)
-
-    plt.figure(figsize=(8,6))
-    sns.barplot(x=top.values, y=top.index)
-
-    plt.title("Top 20 Important Genes (XGBoost)")
-    plt.xlabel("Feature Importance")
-    plt.ylabel("Gene")
-
-    plt.tight_layout()
-
-    plt.savefig("xgboost_feature_importance.png", dpi=150)
+    print("\n=== Final Tuned Model Performance ===")
+    print("Accuracy:", accuracy_score(testing_answers, preds))
+    print("ROC-AUC:", roc_auc_score(testing_answers, probs))
+    print(classification_report(testing_answers, preds))
 
     return model
-
-    
+  
 # Save outputs
 def save_outputs(scores: pd.DataFrame, combined: pd.DataFrame):
 
@@ -478,6 +343,28 @@ def save_outputs(scores: pd.DataFrame, combined: pd.DataFrame):
     final.to_csv("tcga_kirc_combined_labeled.csv")
 
 
+# Check if HK2 is elevated in Glycolytic vs Oxidative samples
+def validate_hk2_signal(scores: pd.DataFrame):
+    glyco = scores.loc[scores["label"] == "Glycolytic", "HK2"]
+    oxi  = scores.loc[scores["label"] == "Oxidative",  "HK2"]
+
+    if len(glyco) == 0 or len(oxi) == 0:
+        print("  Warning: Missing Glycolytic or Oxidative samples for HK2 validation.")
+        return
+
+    stat, p = mannwhitneyu(glyco, oxi, alternative='greater')
+
+    print("\n┌─────────────────────────────────────┐")
+    print("│     HK2 Biological Validation       │")
+    print("├─────────────────────────────────────┤")
+    print(f"│  Glycolytic median :  {glyco.median():>8.2f} TPM  │")
+    print(f"│  Oxidative median  :  {oxi.median():>8.2f} TPM  │")
+    print(f"│  Fold change       :  {glyco.median() / oxi.median():>8.1f}x      │")
+    print("├─────────────────────────────────────┤")
+    print(f"│  Mann-Whitney U p  :  {p:.2e}       │")
+    print(f"│  Significant?      :  {'YES ✓' if p < 0.05 else 'NO ✗':>15}│")
+    print("└─────────────────────────────────────┘\n")
+
 COMBINED_CACHE = Path("cache_combined.parquet")
 EXPR_CACHE = Path("cache_expr_matrix.parquet")
 
@@ -490,12 +377,12 @@ def main():
         expr_matrix = pd.read_parquet(EXPR_CACHE)
     else:
         combined = load_all_samples(DATA_DIR)
+        print("Loaded combined shape:", combined.shape)
         expr_matrix = build_expression_matrix(combined)
         combined.to_parquet(COMBINED_CACHE)
         expr_matrix.to_parquet(EXPR_CACHE)
         expr_matrix.to_csv("tpm_matrix.csv")
-        
-    print("Combined shape:", combined.shape)
+
     scores = run_ssgsea(expr_matrix, GMT_PATH)
 
     scores = normalize_scores(
@@ -504,27 +391,34 @@ def main():
     )
 
     scores = label_samples(scores)
-
     print(scores["label"].value_counts())
 
-    # Plot score distributions 
+    # Plot score distributions
     plot_label_distribution(scores)
 
     add_gene_expression(scores, combined)
     plot_scatter(scores)
-
+    validate_hk2_signal(scores)
     plot_delta_distribution(scores)
 
     # Machine Learning Pipeline
-    df = prepare_ml_dataset(expr_matrix, scores)
+    df = prepare_ml_dataset(expr_matrix, scores, binary=True)
 
-    # Split data before normalizing to prevent data leakage
-    # training_features, testing_features, training_answers, testing_answers  = split_data(df)
-    # training_features, testing_features = normalize_molecular_data(training_features, testing_features)
-    # training_features, testing_features = handle_missing_data(training_features, testing_features)
-    # training_features, testing_features = remove_low_variance(training_features, testing_features)
+    # Split data for training and testing
+    training_features, testing_features, training_answers, testing_answers = split_data(df)
 
-    cross_validate_model(df)
+    # Hyperparameter tuning on the preprocessed training set
+    best_params = tune_hyperparameters(training_features, training_answers)
+
+    # Final model: uses best params from tuning, trained on full train, evaluated on held-out test
+    final_model = train_model(
+        training_features,
+        testing_features,
+        training_answers,
+        testing_answers,
+        best_params=best_params
+    )
+
     save_outputs(scores, combined)
 
 
