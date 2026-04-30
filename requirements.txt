@@ -16,7 +16,6 @@ brotlicffi==1.2.0.1
 certifi==2026.2.25
 cffi==2.0.0
 charset-normalizer==2.0.12
-click==8.1.8
 colorama==0.4.6
 conda-package-handling==2.4.0
 conda_package_streaming==0.12.0
