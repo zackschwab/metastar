@@ -9,20 +9,8 @@ cd metastar
 ```
 
 ### Download the GDC data by running this R code
-```R
-install.packages("BiocManager")
-BiocManager::install("TCGAbiolinks")
-library(TCGAbiolinks)
- 
-query <- GDCquery(
-  project = "TCGA-KIRC",
-  data.category = "Transcriptome Profiling",
-  data.type = "Gene Expression Quantification",
-  workflow.type = "STAR - Counts"
-)
- 
-GDCdownload(query)
-data <- GDCprepare(query)
+```bash
+Rscript download_gdc_data.R
 ```
 
 Copy the GDC data into the metastar directory
