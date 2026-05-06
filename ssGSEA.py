@@ -259,7 +259,7 @@ def tune_hyperparameters(training_features: pd.DataFrame, training_answers: pd.S
     search = RandomizedSearchCV(
         estimator=base_model,
         param_distributions=param_dist,
-        n_iter=50,
+        n_iter=1,
         cv=5,
         scoring='roc_auc',
         n_jobs=12,
@@ -368,7 +368,25 @@ def validate_hk2_signal(scores: pd.DataFrame):
 COMBINED_CACHE = Path("cache_combined.parquet")
 EXPR_CACHE = Path("cache_expr_matrix.parquet")
 
+from sklearn.metrics import confusion_matrix, roc_curve, auc
 
+
+def plot_confusion_matrix(testing_answers, preds, save_path="confusion_matrix.png"):
+    cm = confusion_matrix(testing_answers, preds)
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(
+        cm, annot=True, fmt="d", cmap="Blues", cbar=False,
+        xticklabels=["Oxidative", "Glycolytic"],
+        yticklabels=["Oxidative", "Glycolytic"],
+        linewidths=0.5, linecolor="gray"
+    )
+    plt.xlabel("Predicted Label", fontsize=12)
+    plt.ylabel("True Label", fontsize=12)
+    plt.title("Confusion Matrix (Held-Out Test Set)", fontsize=13)
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    
 # Main
 def main():
     if COMBINED_CACHE.exists() and EXPR_CACHE.exists():
@@ -419,6 +437,16 @@ def main():
         best_params=best_params
     )
 
+    test_preds = final_model.predict(testing_features)
+    test_probs = final_model.predict_proba(testing_features)[:, 1]
+
+    plot_confusion_matrix(testing_answers, test_preds,
+                          save_path="confusion_matrix.png")
+    
+    plot_feature_importance(final_model,
+                            training_features.columns.tolist(),
+                            top_n=20,
+                            save_path="feature_importance.png")
     save_outputs(scores, combined)
 
 
