@@ -11,6 +11,7 @@ from scipy.stats import mannwhitneyu
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score, accuracy_score
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.metrics import confusion_matrix, roc_curve, auc
 
 # Config
 DATA_DIR = Path("./GDCdata/TCGA-KIRC/Transcriptome_Profiling/Gene_Expression_Quantification")
@@ -368,9 +369,7 @@ def validate_hk2_signal(scores: pd.DataFrame):
 COMBINED_CACHE = Path("cache_combined.parquet")
 EXPR_CACHE = Path("cache_expr_matrix.parquet")
 
-from sklearn.metrics import confusion_matrix, roc_curve, auc
-
-
+# Plots the confusion matrix for a model's predictions on the held-out test set
 def plot_confusion_matrix(testing_answers, preds, save_path="confusion_matrix.png"):
     cm = confusion_matrix(testing_answers, preds)
     plt.figure(figsize=(6, 5))
