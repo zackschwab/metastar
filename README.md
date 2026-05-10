@@ -106,5 +106,5 @@ The classifier is implemented using XGBoost with randomized hyperparameter searc
 
 If you use MetaStar in your research, please cite our paper:
 
-> **MetaStar: Predict tumor metabolic state from multi-omic data**  
+> **MetaStar: Predict tumor metabolic state from transcriptomic data**  
 > Elias Mengistu, Zack Schwab  
