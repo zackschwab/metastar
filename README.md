@@ -57,7 +57,7 @@ Samples are labeled using the delta between glycolysis and OXPHOS enrichment sco
 
 - `Glycolytic`: delta > 0.5
 - `Oxidative`: delta < -0.5
-- `Mixed`: intermediate metabolic state
+- `Mixed`: −0.5 ≤ delta ≤ 0.5
 
 Samples labeled as Mixed are excluded from binary classifier training.
 
@@ -67,24 +67,24 @@ Generated outputs are saved to the `results/` and `figures/` directories.
 
 ### results/
 
-- `ssGSEA_scores_labeled.csv`
-- `tcga_kirc_combined_labeled.csv`
-- `tpm_matrix.csv`
-- Cached parquet files for faster reruns
+- `ssGSEA_scores_labeled.csv`: Sample IDs with glycolysis/OXPHOS NES scores, delta, and labels
+- `tcga_kirc_combined_labeled.csv`: Merged ssGSEA labels and TPM expression
+- `tpm_matrix.csv`: Gene-by-sample TPM matrix
+- Cached expression matrices stored as parquet files for faster reruns
 
 ### figures/
 
-- `label_distribution_pie_chart.png`
-- `delta_distribution_histogram.png`
-- `gene_correlation_scatterplots.png`
-- `confusion_matrix.png`
+- `label_distribution_pie_chart.png`: Metabolic phenotype distribution
+- `delta_distribution_histogram.png`: Delta score distribution
+- `gene_correlation_scatterplots.png`: 9-panel correlation grid (HK2, UQCRC1, RUNX1 vs. pathways)
+- `confusion_matrix.png`: Classification performance on held-out test set
 
 ## Biological Validation
 
 The pipeline performs additional biological validation analyses, including:
 
-- HK2, UQCRC1, and RUN1 expression comparison between metabolic states
-- Spearman correlation analysis between pathway scores and selected marker genes
+- HK2 statistical validation between metabolic states
+- Spearman Correlation analysis of HK2, UQCRC1, and RUNX1 with pathway activity
 
 ## Dataset
 
