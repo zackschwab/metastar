@@ -10,13 +10,20 @@ from xgboost import XGBClassifier
 from scipy.stats import mannwhitneyu
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score, accuracy_score
-from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.model_selection import RandomizedSearchCV
 
 # Config
 DATA_DIR = Path("./GDCdata/TCGA-KIRC/Transcriptome_Profiling/Gene_Expression_Quantification")
 GMT_PATH = "./HALLMARK_COMBINED.gmt"
 EXPR_COLS = ["tpm_unstranded"]
+
+# Output directories
+RESULTS_DIR = Path("./results")
+FIGURES_DIR = Path("./figures")
+
+RESULTS_DIR.mkdir(exist_ok=True)
+FIGURES_DIR.mkdir(exist_ok=True)
 
 # Clean and load a single sample TSV file
 def load_sample(fpath: Path) -> Optional[pd.Series]:
@@ -121,7 +128,8 @@ def plot_label_distribution(scores: pd.DataFrame):
     plt.title("Sample Label Distribution (ssGSEA)")
     plt.axis("equal")
 
-    plt.savefig("label_distribution_pie.png", dpi=150)
+    plt.savefig(FIGURES_DIR / "label_distribution_pie_chart.png", dpi=150)
+    plt.close()
 
 # Add gene expression
 def add_gene_expression(scores: pd.DataFrame, combined: pd.DataFrame):
@@ -165,13 +173,14 @@ def plot_scatter(scores: pd.DataFrame):
         ax.set_title(title)
 
     plt.tight_layout()
-    plt.savefig("hk2_uqcrc1_scatter.png", dpi=150)
+    plt.savefig(FIGURES_DIR / "gene_correlation_scatterplots.png", dpi=150)
+    plt.close()
 
     # Nice Spearman table
     print("\n┌────────────────────────────────────────────────────────────┐")
-    print("│              Spearman Correlations                         |")
+    print("│              Spearman Correlations                         │")
     print("├────────────────────────────────────────────────────────────┤")
-    print("│  {:<45} │  {:>6}  │".format("Comparison", "ρ  "))
+    print("│  {:<45} │  {:>3}  │".format("Comparison", "   ρ   "))
     print("├────────────────────────────────────────────────────────────┤")
 
     for (x, y) in pairs:
@@ -195,7 +204,8 @@ def plot_delta_distribution(scores: pd.DataFrame):
 
     plt.grid(True)
 
-    plt.savefig("delta_histogram_kde.png", dpi=150)
+    plt.savefig(FIGURES_DIR / "delta_distribution_histogram.png", dpi=150)
+    plt.close()
 
 # Prepare the dataset for machine learning in a format suitable for training
 def prepare_ml_dataset(expr_matrix, scores, binary=True):
@@ -215,11 +225,11 @@ def prepare_ml_dataset(expr_matrix, scores, binary=True):
     print("\n┌─────────────────────────────────────┐")
     print("│         ML Dataset Summary          │")
     print("├─────────────────────────────────────┤")
-    print(f"│  Total samples       :  {df.shape[0]:>4}        │")
-    print(f"│  Features (genes)    :  {df.shape[1]-1:>4}       │")
+    print(f"│  Total samples      :  {df.shape[0]:>4}         │")
+    print(f"│  Features (genes)   :  {df.shape[1]-1:>4}        │")
     print("├─────────────────────────────────────┤")
-    print(f"│  Glycolytic (1)      :  {y.sum():>4}  ({100*y.sum()/len(y):.1f}%)│")
-    print(f"│  Oxidative  (0)      :  {(y==0).sum():>4}  ({100*(y==0).sum()/len(y):.1f}%)│")
+    print(f"│  Glycolytic (1)     :  {y.sum():>4}  ({100*y.sum()/len(y):.1f}%)│")
+    print(f"│  Oxidative  (0)     :  {(y==0).sum():>4}  ({100*(y==0).sum()/len(y):.1f}%)│")
     print("└─────────────────────────────────────┘")
 
     return df
@@ -260,7 +270,7 @@ def tune_hyperparameters(training_features: pd.DataFrame, training_answers: pd.S
     search = RandomizedSearchCV(
         estimator=base_model,
         param_distributions=param_dist,
-        n_iter=1,
+        n_iter=50,
         cv=5,
         scoring='roc_auc',
         n_jobs=12,
@@ -333,7 +343,7 @@ def train_model(training_features: pd.DataFrame, testing_features: pd.DataFrame,
 # Save outputs
 def save_outputs(scores: pd.DataFrame, combined: pd.DataFrame):
 
-    scores.to_csv("ssGSEA_scores_labeled.csv")
+    scores.to_csv(RESULTS_DIR / "ssGSEA_scores_labeled.csv")
 
     subset = scores[["delta", "label"]].copy()
 
@@ -341,7 +351,7 @@ def save_outputs(scores: pd.DataFrame, combined: pd.DataFrame):
 
     final = subset.join(combined)
 
-    final.to_csv("tcga_kirc_combined_labeled.csv")
+    final.to_csv(RESULTS_DIR / "tcga_kirc_combined_labeled.csv")
 
 
 # Check if HK2 is elevated in Glycolytic vs Oxidative samples
@@ -360,17 +370,16 @@ def validate_hk2_signal(scores: pd.DataFrame):
     print("├─────────────────────────────────────┤")
     print(f"│  Glycolytic median :  {glyco.median():>8.2f} TPM  │")
     print(f"│  Oxidative median  :  {oxi.median():>8.2f} TPM  │")
-    print(f"│  Fold change       :  {glyco.median() / oxi.median():>8.1f}x      │")
-    print("├─────────────────────────────────────┤")
-    print(f"│  Mann-Whitney U p  :  {p:.2e}       │")
-    print(f"│  Significant?      :  {'YES ✓' if p < 0.05 else 'NO ✗':>15}│")
+    print(f"│  Fold change       :  {glyco.median() / oxi.median():>8.1f}x     │")
+    print(f"│  Mann-Whitney U p  :      {p:.2e}  │")
     print("└─────────────────────────────────────┘\n")
 
-COMBINED_CACHE = Path("cache_combined.parquet")
-EXPR_CACHE = Path("cache_expr_matrix.parquet")
+COMBINED_CACHE = RESULTS_DIR / "cache_combined.parquet"
+EXPR_CACHE = RESULTS_DIR / "cache_expr_matrix.parquet"
+
 
 # Plots the confusion matrix for a model's predictions on the held-out test set
-def plot_confusion_matrix(testing_answers, preds, save_path="confusion_matrix.png"):
+def plot_confusion_matrix(testing_answers, preds, save_path=FIGURES_DIR / "confusion_matrix.png"):
     cm = confusion_matrix(testing_answers, preds)
     plt.figure(figsize=(6, 5))
     sns.heatmap(
@@ -385,7 +394,7 @@ def plot_confusion_matrix(testing_answers, preds, save_path="confusion_matrix.pn
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
-    
+
 # Main
 def main():
     if COMBINED_CACHE.exists() and EXPR_CACHE.exists():
@@ -398,7 +407,7 @@ def main():
         expr_matrix = build_expression_matrix(combined)
         combined.to_parquet(COMBINED_CACHE)
         expr_matrix.to_parquet(EXPR_CACHE)
-        expr_matrix.to_csv("tpm_matrix.csv")
+        expr_matrix.to_csv(RESULTS_DIR / "tpm_matrix.csv")
 
     scores = run_ssgsea(expr_matrix, GMT_PATH)
 
@@ -439,13 +448,7 @@ def main():
     test_preds = final_model.predict(testing_features)
     test_probs = final_model.predict_proba(testing_features)[:, 1]
 
-    plot_confusion_matrix(testing_answers, test_preds,
-                          save_path="confusion_matrix.png")
-    
-    plot_feature_importance(final_model,
-                            training_features.columns.tolist(),
-                            top_n=20,
-                            save_path="feature_importance.png")
+    plot_confusion_matrix(testing_answers, test_preds)
     save_outputs(scores, combined)
 
 
