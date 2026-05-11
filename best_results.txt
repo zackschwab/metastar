@@ -1,5 +1,6 @@
-(.venv) [eliasm@22:55:18 metastar]$ python3 ssGSEA.py 
-Loading from cache...
+Found 614 TSV files
+Loading samples: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 614/614 [01:37<00:00,  6.27it/s]
+Loaded combined shape: (614, 59427)
 Running ssGSEA...
 label
 Mixed         227
@@ -8,9 +9,9 @@ Oxidative     161
 Name: count, dtype: int64
 
 ┌────────────────────────────────────────────────────────────┐
-│              Spearman Correlations                         |
+│              Spearman Correlations                         │
 ├────────────────────────────────────────────────────────────┤
-│  Comparison                                    │     ρ    │
+│  Comparison                                    │     ρ     │
 ├────────────────────────────────────────────────────────────┤
 │  HALLMARK_GLYCOLYSIS vs HK2                    │  +0.534   │
 │  HALLMARK_OXIDATIVE_PHOSPHORYLATION vs HK2     │  -0.429   │
@@ -28,85 +29,83 @@ Name: count, dtype: int64
 ├─────────────────────────────────────┤
 │  Glycolytic median :     62.38 TPM  │
 │  Oxidative median  :      5.58 TPM  │
-│  Fold change       :      11.2x      │
-├─────────────────────────────────────┤
-│  Mann-Whitney U p  :  1.00e-45       │
-│  Significant?      :            YES ✓│
+│  Fold change       :      11.2x     │
+│  Mann-Whitney U p  :      1.00e-45  │
 └─────────────────────────────────────┘
 
 
 ┌─────────────────────────────────────┐
 │         ML Dataset Summary          │
 ├─────────────────────────────────────┤
-│  Total samples       :   387        │
-│  Features (genes)    :  59427       │
+│  Total samples      :   387         │
+│  Features (genes)   :  59427        │
 ├─────────────────────────────────────┤
-│  Glycolytic (1)      :   226  (58.4%)│
-│  Oxidative  (0)      :   161  (41.6%)│
+│  Glycolytic (1)     :   226  (58.4%)│
+│  Oxidative  (0)     :   161  (41.6%)│
 └─────────────────────────────────────┘
 
 >>> Running hyperparameter search...
 Fitting 5 folds for each of 50 candidates, totalling 250 fits
 
 --- Iteration Results ---
-Iter 1: mean=0.9919 | folds=[0.9935897435897436, 0.983974358974359, 0.9957264957264957, 0.9871794871794872, 0.9988888888888888] | {'subsample': 0.7, 'reg_alpha': 1, 'n_estimators': 500, 'min_child_weight': 5, 'max_depth': 5, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
-Iter 2: mean=0.9918 | folds=[0.9946581196581197, 0.9839743589743589, 0.9978632478632479, 0.9871794871794872, 0.9955555555555555] | {'subsample': 1.0, 'reg_alpha': 0.1, 'n_estimators': 1200, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.1, 'colsample_bytree': 0.9}
+Iter 1: mean=0.9929 | folds=[0.9935897435897436, 0.9893162393162394, 0.9957264957264957, 0.9861111111111112, 1.0] | {'subsample': 0.7, 'reg_alpha': 1, 'n_estimators': 500, 'min_child_weight': 5, 'max_depth': 5, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
+Iter 2: mean=0.9923 | folds=[0.9935897435897436, 0.9871794871794871, 0.9978632478632479, 0.9882478632478632, 0.9944444444444444] | {'subsample': 1.0, 'reg_alpha': 0.1, 'n_estimators': 1200, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.1, 'colsample_bytree': 0.9}
 Iter 3: mean=0.9886 | folds=[0.9925213675213675, 0.9818376068376069, 0.9935897435897436, 0.9807692307692308, 0.9944444444444445] | {'subsample': 0.9, 'reg_alpha': 1, 'n_estimators': 1200, 'min_child_weight': 5, 'max_depth': 4, 'learning_rate': 0.001, 'colsample_bytree': 0.9}
-Iter 4: mean=0.9908 | folds=[0.9946581196581197, 0.983974358974359, 0.9957264957264957, 0.982905982905983, 0.9966666666666666] | {'subsample': 0.7, 'reg_alpha': 0.01, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 3, 'learning_rate': 0.01, 'colsample_bytree': 0.8}
-Iter 5: mean=0.9876 | folds=[0.9903846153846154, 0.9764957264957266, 0.9957264957264956, 0.9797008547008547, 0.9955555555555555] | {'subsample': 1.0, 'reg_alpha': 10, 'n_estimators': 1200, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
-Iter 6: mean=0.9927 | folds=[0.9935897435897436, 0.9903846153846153, 0.9957264957264957, 0.9850427350427351, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0, 'n_estimators': 800, 'min_child_weight': 5, 'max_depth': 4, 'learning_rate': 0.05, 'colsample_bytree': 0.8}
-Iter 7: mean=0.9891 | folds=[0.9946581196581197, 0.9732905982905983, 1.0, 0.9829059829059829, 0.9944444444444444] | {'subsample': 0.9, 'reg_alpha': 0.1, 'n_estimators': 1200, 'min_child_weight': 10, 'max_depth': 2, 'learning_rate': 0.2, 'colsample_bytree': 0.6}
+Iter 4: mean=0.9904 | folds=[0.9925213675213675, 0.9861111111111112, 0.9946581196581197, 0.9818376068376069, 0.9966666666666666] | {'subsample': 0.7, 'reg_alpha': 0.01, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 3, 'learning_rate': 0.01, 'colsample_bytree': 0.8}
+Iter 5: mean=0.9884 | folds=[0.9861111111111112, 0.9786324786324786, 1.0, 0.9839743589743589, 0.9933333333333333] | {'subsample': 1.0, 'reg_alpha': 10, 'n_estimators': 1200, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
+Iter 6: mean=0.9940 | folds=[0.9946581196581197, 0.9903846153846154, 0.9957264957264957, 0.9903846153846154, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0, 'n_estimators': 800, 'min_child_weight': 5, 'max_depth': 4, 'learning_rate': 0.05, 'colsample_bytree': 0.8}
+Iter 7: mean=0.9908 | folds=[0.9871794871794872, 0.983974358974359, 0.9978632478632479, 0.9882478632478632, 0.9966666666666666] | {'subsample': 0.9, 'reg_alpha': 0.1, 'n_estimators': 1200, 'min_child_weight': 10, 'max_depth': 2, 'learning_rate': 0.2, 'colsample_bytree': 0.6}
 Iter 8: mean=0.9899 | folds=[0.9925213675213675, 0.9829059829059829, 0.9957264957264957, 0.9829059829059827, 0.9955555555555555] | {'subsample': 0.8, 'reg_alpha': 10, 'n_estimators': 1200, 'min_child_weight': 5, 'max_depth': 4, 'learning_rate': 0.01, 'colsample_bytree': 0.9}
 Iter 9: mean=0.9912 | folds=[0.9935897435897436, 0.985042735042735, 0.9978632478632479, 0.9839743589743589, 0.9955555555555555] | {'subsample': 0.7, 'reg_alpha': 0, 'n_estimators': 1200, 'min_child_weight': 10, 'max_depth': 2, 'learning_rate': 0.01, 'colsample_bytree': 1.0}
-Iter 10: mean=0.9940 | folds=[0.9871794871794872, 0.9925213675213675, 0.9967948717948718, 0.9946581196581196, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 3, 'learning_rate': 0.2, 'colsample_bytree': 0.7}
-Iter 11: mean=0.9904 | folds=[0.9882478632478633, 0.9871794871794872, 0.9957264957264957, 0.982905982905983, 0.9977777777777778] | {'subsample': 1.0, 'reg_alpha': 0.001, 'n_estimators': 300, 'min_child_weight': 3, 'max_depth': 8, 'learning_rate': 0.05, 'colsample_bytree': 0.8}
-Iter 12: mean=0.9897 | folds=[0.9850427350427351, 0.9914529914529914, 0.9882478632478632, 0.9850427350427351, 0.9988888888888889] | {'subsample': 0.5, 'reg_alpha': 0, 'n_estimators': 1200, 'min_child_weight': 3, 'max_depth': 4, 'learning_rate': 0.3, 'colsample_bytree': 0.8}
+Iter 10: mean=0.9970 | folds=[0.9957264957264956, 0.9978632478632479, 0.9957264957264957, 0.9967948717948718, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 3, 'learning_rate': 0.2, 'colsample_bytree': 0.7}
+Iter 11: mean=0.9906 | folds=[0.9882478632478633, 0.9861111111111112, 0.9967948717948718, 0.982905982905983, 0.9988888888888888] | {'subsample': 1.0, 'reg_alpha': 0.001, 'n_estimators': 300, 'min_child_weight': 3, 'max_depth': 8, 'learning_rate': 0.05, 'colsample_bytree': 0.8}
+Iter 12: mean=0.9940 | folds=[0.9946581196581196, 0.9914529914529915, 0.9946581196581197, 0.9903846153846154, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0, 'n_estimators': 1200, 'min_child_weight': 3, 'max_depth': 4, 'learning_rate': 0.3, 'colsample_bytree': 0.8}
 Iter 13: mean=0.9906 | folds=[0.9914529914529915, 0.9871794871794871, 0.9967948717948718, 0.9818376068376068, 0.9955555555555555] | {'subsample': 0.8, 'reg_alpha': 1, 'n_estimators': 300, 'min_child_weight': 7, 'max_depth': 4, 'learning_rate': 0.05, 'colsample_bytree': 1.0}
 Iter 14: mean=0.9875 | folds=[0.9925213675213675, 0.9797008547008548, 0.9925213675213675, 0.9818376068376068, 0.991111111111111] | {'subsample': 0.6, 'reg_alpha': 10, 'n_estimators': 1200, 'min_child_weight': 5, 'max_depth': 4, 'learning_rate': 0.3, 'colsample_bytree': 1.0}
-Iter 15: mean=0.9910 | folds=[0.9925213675213675, 0.985042735042735, 0.9978632478632479, 0.982905982905983, 0.9966666666666666] | {'subsample': 0.8, 'reg_alpha': 0, 'n_estimators': 100, 'min_child_weight': 10, 'max_depth': 8, 'learning_rate': 0.05, 'colsample_bytree': 0.5}
-Iter 16: mean=0.9927 | folds=[0.9935897435897436, 0.9893162393162394, 0.9978632478632479, 0.9850427350427351, 0.9977777777777778] | {'subsample': 0.7, 'reg_alpha': 0.01, 'n_estimators': 300, 'min_child_weight': 7, 'max_depth': 5, 'learning_rate': 0.01, 'colsample_bytree': 0.6}
-Iter 17: mean=0.9884 | folds=[0.9935897435897436, 0.9797008547008548, 0.9925213675213675, 0.9807692307692308, 0.9955555555555555] | {'subsample': 0.8, 'reg_alpha': 0.001, 'n_estimators': 500, 'min_child_weight': 7, 'max_depth': 4, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
-Iter 18: mean=0.9910 | folds=[0.9946581196581197, 0.986111111111111, 0.9935897435897436, 0.9818376068376069, 0.9988888888888888] | {'subsample': 0.7, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 1, 'max_depth': 2, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
-Iter 19: mean=0.9886 | folds=[0.9946581196581196, 0.9818376068376068, 0.9957264957264956, 0.9775641025641025, 0.9933333333333333] | {'subsample': 0.6, 'reg_alpha': 0.01, 'n_estimators': 300, 'min_child_weight': 10, 'max_depth': 2, 'learning_rate': 0.001, 'colsample_bytree': 0.5}
-Iter 20: mean=0.9932 | folds=[0.9957264957264957, 0.9871794871794872, 0.9967948717948718, 0.9871794871794872, 0.9988888888888888] | {'subsample': 1.0, 'reg_alpha': 0.001, 'n_estimators': 1200, 'min_child_weight': 3, 'max_depth': 2, 'learning_rate': 0.3, 'colsample_bytree': 0.6}
+Iter 15: mean=0.9925 | folds=[0.9935897435897436, 0.9850427350427351, 0.9978632478632479, 0.9882478632478633, 0.9977777777777778] | {'subsample': 0.8, 'reg_alpha': 0, 'n_estimators': 100, 'min_child_weight': 10, 'max_depth': 8, 'learning_rate': 0.05, 'colsample_bytree': 0.5}
+Iter 16: mean=0.9929 | folds=[0.9946581196581197, 0.9871794871794872, 0.9978632478632479, 0.9871794871794871, 0.9977777777777778] | {'subsample': 0.7, 'reg_alpha': 0.01, 'n_estimators': 300, 'min_child_weight': 7, 'max_depth': 5, 'learning_rate': 0.01, 'colsample_bytree': 0.6}
+Iter 17: mean=0.9893 | folds=[0.9946581196581197, 0.9807692307692308, 0.9957264957264957, 0.9807692307692308, 0.9944444444444445] | {'subsample': 0.8, 'reg_alpha': 0.001, 'n_estimators': 500, 'min_child_weight': 7, 'max_depth': 4, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
+Iter 18: mean=0.9904 | folds=[0.9935897435897435, 0.985042735042735, 0.9935897435897436, 0.9807692307692308, 0.9988888888888888] | {'subsample': 0.7, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 1, 'max_depth': 2, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
+Iter 19: mean=0.9886 | folds=[0.9957264957264956, 0.9807692307692307, 0.9946581196581196, 0.9786324786324786, 0.9933333333333333] | {'subsample': 0.6, 'reg_alpha': 0.01, 'n_estimators': 300, 'min_child_weight': 10, 'max_depth': 2, 'learning_rate': 0.001, 'colsample_bytree': 0.5}
+Iter 20: mean=0.9951 | folds=[0.9957264957264957, 0.9935897435897436, 0.9989316239316239, 0.9903846153846154, 0.9966666666666666] | {'subsample': 1.0, 'reg_alpha': 0.001, 'n_estimators': 1200, 'min_child_weight': 3, 'max_depth': 2, 'learning_rate': 0.3, 'colsample_bytree': 0.6}
 Iter 21: mean=0.9862 | folds=[0.9764957264957265, 0.9818376068376068, 0.9967948717948718, 0.9882478632478633, 0.9877777777777778] | {'subsample': 1.0, 'reg_alpha': 0.1, 'n_estimators': 1200, 'min_child_weight': 5, 'max_depth': 8, 'learning_rate': 0.3, 'colsample_bytree': 1.0}
-Iter 22: mean=0.9874 | folds=[0.9893162393162394, 0.982905982905983, 0.9925213675213675, 0.9754273504273505, 0.9966666666666667] | {'subsample': 1.0, 'reg_alpha': 0.01, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 2, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
-Iter 23: mean=0.9895 | folds=[0.9946581196581196, 0.986111111111111, 0.9957264957264956, 0.9775641025641025, 0.9933333333333333] | {'subsample': 0.6, 'reg_alpha': 0.1, 'n_estimators': 500, 'min_child_weight': 10, 'max_depth': 8, 'learning_rate': 0.001, 'colsample_bytree': 0.5}
-Iter 24: mean=0.9848 | folds=[0.9935897435897436, 0.969017094017094, 0.9935897435897435, 0.9722222222222222, 0.9955555555555555] | {'subsample': 1.0, 'reg_alpha': 10, 'n_estimators': 100, 'min_child_weight': 10, 'max_depth': 2, 'learning_rate': 0.01, 'colsample_bytree': 0.8}
+Iter 22: mean=0.9874 | folds=[0.9893162393162394, 0.9829059829059829, 0.9925213675213675, 0.9754273504273505, 0.9966666666666667] | {'subsample': 1.0, 'reg_alpha': 0.01, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 2, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
+Iter 23: mean=0.9895 | folds=[0.9946581196581196, 0.9829059829059829, 0.9967948717948718, 0.9797008547008547, 0.9933333333333333] | {'subsample': 0.6, 'reg_alpha': 0.1, 'n_estimators': 500, 'min_child_weight': 10, 'max_depth': 8, 'learning_rate': 0.001, 'colsample_bytree': 0.5}
+Iter 24: mean=0.9844 | folds=[0.9925213675213675, 0.9658119658119659, 0.9935897435897435, 0.9743589743589743, 0.9955555555555555] | {'subsample': 1.0, 'reg_alpha': 10, 'n_estimators': 100, 'min_child_weight': 10, 'max_depth': 2, 'learning_rate': 0.01, 'colsample_bytree': 0.8}
 Iter 25: mean=0.9925 | folds=[0.9946581196581197, 0.9914529914529915, 0.9946581196581197, 0.982905982905983, 0.9988888888888888] | {'subsample': 0.8, 'reg_alpha': 1, 'n_estimators': 500, 'min_child_weight': 3, 'max_depth': 3, 'learning_rate': 0.2, 'colsample_bytree': 1.0}
-Iter 26: mean=0.9919 | folds=[0.9871794871794871, 0.9903846153846154, 0.9978632478632479, 0.9861111111111112, 0.9977777777777778] | {'subsample': 0.8, 'reg_alpha': 0.1, 'n_estimators': 1200, 'min_child_weight': 7, 'max_depth': 6, 'learning_rate': 0.1, 'colsample_bytree': 0.7}
-Iter 27: mean=0.9871 | folds=[0.9914529914529914, 0.9754273504273504, 0.9957264957264957, 0.9786324786324786, 0.9944444444444444] | {'subsample': 0.8, 'reg_alpha': 10, 'n_estimators': 500, 'min_child_weight': 5, 'max_depth': 5, 'learning_rate': 0.3, 'colsample_bytree': 0.9}
-Iter 28: mean=0.9927 | folds=[0.9978632478632479, 0.986111111111111, 0.9978632478632479, 0.982905982905983, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.001, 'colsample_bytree': 0.9}
-Iter 29: mean=0.9942 | folds=[0.9957264957264956, 0.9925213675213675, 0.9967948717948718, 0.9893162393162394, 0.9966666666666666] | {'subsample': 0.9, 'reg_alpha': 0.1, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 2, 'learning_rate': 0.3, 'colsample_bytree': 0.9}
-Iter 30: mean=0.9892 | folds=[0.9925213675213675, 0.9839743589743589, 0.9967948717948718, 0.9829059829059829, 0.99] | {'subsample': 0.9, 'reg_alpha': 0.1, 'n_estimators': 300, 'min_child_weight': 10, 'max_depth': 5, 'learning_rate': 0.1, 'colsample_bytree': 0.7}
-Iter 31: mean=0.9919 | folds=[0.9914529914529915, 0.986111111111111, 0.9957264957264957, 0.986111111111111, 1.0] | {'subsample': 1.0, 'reg_alpha': 1, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 6, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
-Iter 32: mean=0.9918 | folds=[0.9946581196581197, 0.9871794871794871, 0.9989316239316239, 0.983974358974359, 0.9944444444444445] | {'subsample': 0.6, 'reg_alpha': 10, 'n_estimators': 500, 'min_child_weight': 1, 'max_depth': 6, 'learning_rate': 0.1, 'colsample_bytree': 0.9}
-Iter 33: mean=0.9870 | folds=[0.9989316239316239, 0.9775641025641025, 0.9946581196581196, 0.9636752136752138, 1.0] | {'subsample': 1.0, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.001, 'colsample_bytree': 0.9}
-Iter 34: mean=0.9921 | folds=[1.0, 0.9882478632478632, 0.9967948717948718, 0.9754273504273505, 1.0] | {'subsample': 1.0, 'reg_alpha': 0.001, 'n_estimators': 300, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.001, 'colsample_bytree': 0.5}
-Iter 35: mean=0.9880 | folds=[0.9925213675213675, 0.9797008547008548, 0.9903846153846154, 0.9797008547008547, 0.9977777777777779] | {'subsample': 0.8, 'reg_alpha': 0.01, 'n_estimators': 100, 'min_child_weight': 7, 'max_depth': 8, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
+Iter 26: mean=0.9914 | folds=[0.9893162393162394, 0.9871794871794871, 0.9978632478632479, 0.983974358974359, 0.9988888888888888] | {'subsample': 0.8, 'reg_alpha': 0.1, 'n_estimators': 1200, 'min_child_weight': 7, 'max_depth': 6, 'learning_rate': 0.1, 'colsample_bytree': 0.7}
+Iter 27: mean=0.9891 | folds=[0.9935897435897436, 0.9807692307692307, 0.9957264957264957, 0.9797008547008548, 0.9955555555555555] | {'subsample': 0.8, 'reg_alpha': 10, 'n_estimators': 500, 'min_child_weight': 5, 'max_depth': 5, 'learning_rate': 0.3, 'colsample_bytree': 0.9}
+Iter 28: mean=0.9929 | folds=[0.9978632478632479, 0.986111111111111, 0.9978632478632479, 0.983974358974359, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.001, 'colsample_bytree': 0.9}
+Iter 29: mean=0.9940 | folds=[0.9925213675213675, 0.9914529914529915, 1.0, 0.9903846153846154, 0.9955555555555555] | {'subsample': 0.9, 'reg_alpha': 0.1, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 2, 'learning_rate': 0.3, 'colsample_bytree': 0.9}
+Iter 30: mean=0.9904 | folds=[0.9914529914529915, 0.9829059829059829, 0.9989316239316239, 0.9829059829059829, 0.9955555555555555] | {'subsample': 0.9, 'reg_alpha': 0.1, 'n_estimators': 300, 'min_child_weight': 10, 'max_depth': 5, 'learning_rate': 0.1, 'colsample_bytree': 0.7}
+Iter 31: mean=0.9940 | folds=[0.9925213675213675, 0.9914529914529915, 0.9989316239316239, 0.9882478632478633, 0.9988888888888888] | {'subsample': 1.0, 'reg_alpha': 1, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 6, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
+Iter 32: mean=0.9921 | folds=[0.9967948717948718, 0.9893162393162392, 0.9967948717948718, 0.982905982905983, 0.9944444444444445] | {'subsample': 0.6, 'reg_alpha': 10, 'n_estimators': 500, 'min_child_weight': 1, 'max_depth': 6, 'learning_rate': 0.1, 'colsample_bytree': 0.9}
+Iter 33: mean=0.9865 | folds=[0.9957264957264957, 0.9786324786324786, 0.9903846153846154, 0.9679487179487181, 1.0] | {'subsample': 1.0, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.001, 'colsample_bytree': 0.9}
+Iter 34: mean=0.9934 | folds=[1.0, 0.9903846153846154, 0.9978632478632479, 0.9786324786324787, 1.0] | {'subsample': 1.0, 'reg_alpha': 0.001, 'n_estimators': 300, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.001, 'colsample_bytree': 0.5}
+Iter 35: mean=0.9895 | folds=[0.983974358974359, 0.986111111111111, 0.9957264957264957, 0.9829059829059829, 0.9988888888888888] | {'subsample': 0.8, 'reg_alpha': 0.01, 'n_estimators': 100, 'min_child_weight': 7, 'max_depth': 8, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
 Iter 36: mean=0.9884 | folds=[0.9903846153846154, 0.9786324786324786, 0.9978632478632479, 0.9786324786324786, 0.9966666666666667] | {'subsample': 0.9, 'reg_alpha': 10, 'n_estimators': 800, 'min_child_weight': 3, 'max_depth': 3, 'learning_rate': 0.3, 'colsample_bytree': 1.0}
-Iter 37: mean=0.9914 | folds=[0.9935897435897436, 0.986111111111111, 0.9978632478632479, 0.9807692307692308, 0.9988888888888888] | {'subsample': 0.6, 'reg_alpha': 1, 'n_estimators': 100, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
-Iter 38: mean=0.9882 | folds=[0.9914529914529915, 0.9807692307692308, 0.9925213675213675, 0.9829059829059827, 0.9933333333333333] | {'subsample': 0.8, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 5, 'max_depth': 2, 'learning_rate': 0.001, 'colsample_bytree': 0.9}
-Iter 39: mean=0.9957 | folds=[0.9957264957264957, 0.9925213675213675, 0.9989316239316239, 0.9925213675213675, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0.1, 'n_estimators': 300, 'min_child_weight': 1, 'max_depth': 6, 'learning_rate': 0.1, 'colsample_bytree': 0.7}
+Iter 37: mean=0.9914 | folds=[0.9935897435897436, 0.9882478632478632, 0.9946581196581196, 0.982905982905983, 0.9977777777777778] | {'subsample': 0.6, 'reg_alpha': 1, 'n_estimators': 100, 'min_child_weight': 1, 'max_depth': 3, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
+Iter 38: mean=0.9888 | folds=[0.9914529914529915, 0.9818376068376068, 0.9925213675213675, 0.983974358974359, 0.9944444444444445] | {'subsample': 0.8, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 5, 'max_depth': 2, 'learning_rate': 0.001, 'colsample_bytree': 0.9}
+Iter 39: mean=0.9981 | folds=[0.9978632478632479, 0.9989316239316239, 0.9978632478632479, 0.9967948717948718, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0.1, 'n_estimators': 300, 'min_child_weight': 1, 'max_depth': 6, 'learning_rate': 0.1, 'colsample_bytree': 0.7}  <-- BEST
 Iter 40: mean=0.9904 | folds=[0.9935897435897436, 0.9850427350427351, 0.9946581196581197, 0.9818376068376069, 0.9966666666666666] | {'subsample': 0.8, 'reg_alpha': 0.1, 'n_estimators': 1200, 'min_child_weight': 3, 'max_depth': 8, 'learning_rate': 0.001, 'colsample_bytree': 1.0}
-Iter 41: mean=0.9883 | folds=[0.9786324786324786, 0.985576923076923, 0.9957264957264957, 0.983974358974359, 0.9977777777777779] | {'subsample': 0.5, 'reg_alpha': 0.001, 'n_estimators': 100, 'min_child_weight': 7, 'max_depth': 2, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
-Iter 42: mean=0.9895 | folds=[0.9935897435897435, 0.9839743589743589, 0.9957264957264956, 0.9797008547008547, 0.9944444444444445] | {'subsample': 0.6, 'reg_alpha': 0.001, 'n_estimators': 800, 'min_child_weight': 10, 'max_depth': 4, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
-Iter 43: mean=0.9959 | folds=[0.9946581196581196, 0.9925213675213675, 0.9957264957264957, 0.9978632478632479, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0.001, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 5, 'learning_rate': 0.2, 'colsample_bytree': 0.6}
-Iter 44: mean=0.9886 | folds=[0.9978632478632479, 0.9797008547008547, 0.9935897435897436, 0.9754273504273504, 0.9966666666666666] | {'subsample': 1.0, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 4, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
-Iter 45: mean=0.9955 | folds=[0.9989316239316239, 0.9882478632478633, 0.9978632478632478, 0.9946581196581196, 0.9977777777777778] | {'subsample': 0.8, 'reg_alpha': 0.01, 'n_estimators': 300, 'min_child_weight': 1, 'max_depth': 8, 'learning_rate': 0.3, 'colsample_bytree': 0.5}
-Iter 46: mean=0.9961 | folds=[0.9946581196581197, 0.9946581196581197, 0.9989316239316239, 0.9935897435897436, 0.9988888888888888] | {'subsample': 0.7, 'reg_alpha': 0.001, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.1, 'colsample_bytree': 0.8}  <-- BEST
-Iter 47: mean=0.9916 | folds=[0.9925213675213674, 0.9914529914529914, 0.9935897435897436, 0.9829059829059829, 0.9977777777777778] | {'subsample': 0.5, 'reg_alpha': 0.1, 'n_estimators': 300, 'min_child_weight': 7, 'max_depth': 2, 'learning_rate': 0.05, 'colsample_bytree': 0.5}
-Iter 48: mean=0.9904 | folds=[0.9935897435897436, 0.985042735042735, 0.9967948717948718, 0.9797008547008548, 0.9966666666666666] | {'subsample': 0.7, 'reg_alpha': 0.001, 'n_estimators': 1200, 'min_child_weight': 7, 'max_depth': 6, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
-Iter 49: mean=0.9919 | folds=[0.9967948717948718, 0.985042735042735, 0.9978632478632479, 0.9807692307692308, 0.9988888888888888] | {'subsample': 0.7, 'reg_alpha': 0, 'n_estimators': 800, 'min_child_weight': 3, 'max_depth': 6, 'learning_rate': 0.001, 'colsample_bytree': 0.5}
-Iter 50: mean=0.9914 | folds=[0.9925213675213675, 0.9882478632478632, 0.9967948717948718, 0.9818376068376069, 0.9977777777777778] | {'subsample': 0.7, 'reg_alpha': 1, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 6, 'learning_rate': 0.01, 'colsample_bytree': 0.6}
+Iter 41: mean=0.9919 | folds=[0.9871794871794872, 0.9903846153846154, 0.9967948717948718, 0.986111111111111, 0.9988888888888889] | {'subsample': 0.5, 'reg_alpha': 0.001, 'n_estimators': 100, 'min_child_weight': 7, 'max_depth': 2, 'learning_rate': 0.2, 'colsample_bytree': 0.8}
+Iter 42: mean=0.9895 | folds=[0.9935897435897435, 0.9839743589743589, 0.9957264957264956, 0.9797008547008548, 0.9944444444444445] | {'subsample': 0.6, 'reg_alpha': 0.001, 'n_estimators': 800, 'min_child_weight': 10, 'max_depth': 4, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
+Iter 43: mean=0.9946 | folds=[0.9935897435897436, 0.9914529914529915, 0.9978632478632478, 0.9914529914529915, 0.9988888888888888] | {'subsample': 0.5, 'reg_alpha': 0.001, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 5, 'learning_rate': 0.2, 'colsample_bytree': 0.6}
+Iter 44: mean=0.9884 | folds=[0.9978632478632479, 0.9764957264957265, 0.9935897435897436, 0.9775641025641025, 0.9966666666666666] | {'subsample': 1.0, 'reg_alpha': 0.1, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 4, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
+Iter 45: mean=0.9944 | folds=[0.9946581196581196, 0.9914529914529914, 0.9957264957264957, 0.9914529914529915, 0.9988888888888888] | {'subsample': 0.8, 'reg_alpha': 0.01, 'n_estimators': 300, 'min_child_weight': 1, 'max_depth': 8, 'learning_rate': 0.3, 'colsample_bytree': 0.5}
+Iter 46: mean=0.9964 | folds=[0.9957264957264957, 0.9946581196581197, 0.9967948717948718, 0.9957264957264957, 0.9988888888888888] | {'subsample': 0.7, 'reg_alpha': 0.001, 'n_estimators': 800, 'min_child_weight': 1, 'max_depth': 5, 'learning_rate': 0.1, 'colsample_bytree': 0.8}
+Iter 47: mean=0.9925 | folds=[0.9903846153846153, 0.9903846153846153, 0.9935897435897436, 0.9914529914529915, 0.9966666666666666] | {'subsample': 0.5, 'reg_alpha': 0.1, 'n_estimators': 300, 'min_child_weight': 7, 'max_depth': 2, 'learning_rate': 0.05, 'colsample_bytree': 0.5}
+Iter 48: mean=0.9901 | folds=[0.9946581196581197, 0.983974358974359, 0.9967948717948718, 0.9797008547008548, 0.9955555555555555] | {'subsample': 0.7, 'reg_alpha': 0.001, 'n_estimators': 1200, 'min_child_weight': 7, 'max_depth': 6, 'learning_rate': 0.001, 'colsample_bytree': 0.7}
+Iter 49: mean=0.9916 | folds=[0.9978632478632479, 0.985042735042735, 0.9978632478632479, 0.9818376068376069, 0.9955555555555555] | {'subsample': 0.7, 'reg_alpha': 0, 'n_estimators': 800, 'min_child_weight': 3, 'max_depth': 6, 'learning_rate': 0.001, 'colsample_bytree': 0.5}
+Iter 50: mean=0.9908 | folds=[0.9935897435897436, 0.9861111111111112, 0.9946581196581196, 0.982905982905983, 0.9966666666666666] | {'subsample': 0.7, 'reg_alpha': 1, 'n_estimators': 100, 'min_child_weight': 3, 'max_depth': 6, 'learning_rate': 0.01, 'colsample_bytree': 0.6}
 
-Best combo: mean test ROC-AUC = 0.9961
-  Best fold : Fold 3 (0.9989)
-  Train gap : 0.0039  
+Best combo: mean test ROC-AUC = 0.9981
+  Best fold : Fold 2 (0.9989)
+  Train gap : 0.0019  
 
 === Final Tuned Model Performance ===
 Accuracy: 0.9358974358974359
-ROC-AUC: 0.9796195652173914
+ROC-AUC: 0.9850543478260869
               precision    recall  f1-score   support
 
            0       0.91      0.94      0.92        32
